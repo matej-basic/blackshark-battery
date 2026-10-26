@@ -8,3 +8,4 @@ build/
 xcuserdata/
 *.zip
 .claude/settings.local.json
+SHA256SUMS
