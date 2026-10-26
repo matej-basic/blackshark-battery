@@ -1,6 +1,6 @@
 cask "blackshark-battery" do
   version "0.1.0"
-  sha256 "0000000000000000000000000000000000000000000000000000000000000000"
+  sha256 "6cbe96cfb66929495d74f536bfe5c2fe4f5252fccb99915c181b5abadd3bcbee"
 
   url "https://github.com/matej-basic/blackshark-battery/releases/download/v#{version}/BlackSharkBattery-#{version}.zip"
   name "BlackShark Battery"
