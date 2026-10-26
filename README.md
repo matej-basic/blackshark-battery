@@ -245,3 +245,7 @@ Swift style follows `.swift-format` (4-space indent, 160 columns):
 ## Quit
 
 Click the menu bar icon and choose Quit, or run `pkill -x BlackSharkBattery`.
+
+## License
+
+MIT, see [LICENSE](LICENSE).

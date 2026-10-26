@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this project is
 
-`BlackSharkBattery` is a small macOS menu bar app (no Dock icon) that shows the battery level and charging state of a Razer BlackShark V2 Pro wireless headset, read over HID from its 2.4 GHz dongle (USB `1532:0555`). It is a solo project with no remote yet. The app is ad-hoc signed and built from source only.
+`BlackSharkBattery` is a small macOS menu bar app (no Dock icon) that shows the battery level and charging state of a Razer BlackShark V2 Pro wireless headset, read over HID from its 2.4 GHz dongle (USB `1532:0555`). It is a solo project, published at https://github.com/matej-basic/blackshark-battery. The app is ad-hoc signed and built from source only.
 
 ## Repository layout
 
