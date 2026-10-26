@@ -20,6 +20,46 @@ dock. No sudo and no Input Monitoring permission were needed.
 
 ## Install
 
+The one-command and Homebrew routes download a published release. The first
+release (tag `v0.1.0`) has not been published yet, so until it is, both stop
+with a download error and the only working route is From source. Release
+builds are made on an Apple silicon runner; on an Intel Mac, build from source.
+
+### One command
+
+    curl -fsSL https://raw.githubusercontent.com/matej-basic/blackshark-battery/main/install.sh | bash
+
+The script downloads `SHA256SUMS` and the zip of the latest release into a
+temporary directory, checks the hash, extracts the app, removes the quarantine
+flag, quits a running copy, replaces `/Applications/BlackSharkBattery.app` (or
+`~/Applications` if `/Applications` is not writable for you) and starts it. It
+uses only `curl`, `ditto`, `xattr` and `shasum`, which ship with macOS. Read
+[install.sh](install.sh) first if you like. To see the steps and URLs without
+downloading anything:
+
+    curl -fsSL https://raw.githubusercontent.com/matej-basic/blackshark-battery/main/install.sh | bash -s -- --dry-run
+
+Set `BSB_VERSION=v0.1.0` to install a specific release and
+`INSTALL_DIR=/some/dir` to install somewhere else.
+
+### Homebrew
+
+    brew tap matej-basic/blackshark-battery https://github.com/matej-basic/blackshark-battery
+    brew install --cask matej-basic/blackshark-battery/blackshark-battery
+
+Homebrew 6 and later refuse casks from taps you have not trusted. Installing
+the fully qualified name in the second command is the trust step, and it
+trusts only this cask. To use the short name afterwards, run
+`brew trust --cask matej-basic/blackshark-battery/blackshark-battery` once.
+
+Upgrade with `brew upgrade --cask blackshark-battery`. Remove it with
+`brew uninstall --cask --zap blackshark-battery`, and
+`brew untap matej-basic/blackshark-battery` if you no longer want the tap. The
+app is ad-hoc signed and not notarized, so the cask strips the quarantine flag
+after install; the sha256 in the cask pins the exact zip that CI built.
+
+### From source
+
 You need the Xcode Command Line Tools (`xcode-select --install`), not full Xcode.
 
     ./build.sh
@@ -40,6 +80,24 @@ Untick "Launch at login" in the menu first if you turned it on. Then:
     pkill -x BlackSharkBattery
     rm -rf /Applications/BlackSharkBattery.app
     defaults delete com.matejbasic.BlackSharkBattery
+
+With Homebrew, `brew uninstall --cask --zap blackshark-battery` does the same.
+If the app was installed to `~/Applications`, remove it from there.
+
+## Gatekeeper
+
+The app is signed ad hoc, not with a paid Developer ID, and it is not
+notarized, so Gatekeeper rejects it when it carries the quarantine attribute
+that browsers and Homebrew put on downloads. Both the one-command installer and
+the Homebrew cask remove that attribute (`xattr -dr com.apple.quarantine`), so
+no dialog appears. A build from source never has it.
+
+A zip downloaded by hand from the Releases page is quarantined. On first
+launch macOS refuses it; open System Settings, Privacy & Security, scroll to
+the Security section and click Open Anyway next to the message about
+BlackSharkBattery, then confirm with your password. You only need to do this
+once per downloaded copy. Or run
+`xattr -dr com.apple.quarantine /Applications/BlackSharkBattery.app` yourself.
 
 ## Features
 
@@ -222,8 +280,13 @@ idle timer. None of them have been sent from this repo.
 
 ## Development
 
+    make test    # BatteryCore tests on Linux, in a swift:6.1 container
+    make lint    # swift-format, shellcheck and actionlint, each in a container
     swift build --build-tests
-    swift test
+    swift test   # the same tests on the Mac
+
+`make build` and `make install` call `./build.sh` and `./build.sh install`. The
+container setup is in `compose.yaml`; the only prerequisite is Docker.
 
 With the Command Line Tools alone, `swift test` from a clean checkout can fail
 with `plugin for module 'TestingMacros' not found`. Run
@@ -235,12 +298,26 @@ the plugin path passed explicitly:
     swift build --build-tests -Xswiftc -plugin-path -Xswiftc $P
     swift test -Xswiftc -plugin-path -Xswiftc $P
 
+The Linux container and a Mac with full Xcode do not need this.
+
 Before it builds, `build.sh` checks that `IOHIDDeviceSetReport` appears exactly
 once in `Sources`, in `HIDTransport.swift`, and that nothing uses feature
 reports or element writes. The build stops if either check fails.
 
 Swift style follows `.swift-format` (4-space indent, 160 columns):
-`swift format lint --strict -r Sources Tests`.
+`swift format lint --strict -r Sources Tests`, or `make lint`, which also runs
+shellcheck on the two scripts and actionlint on the workflows.
+
+CI runs the Linux tests and the lint services in containers, and the macOS
+build (tests, `./build.sh`, signature and Info.plist checks, a smoke run of the
+binary) on a GitHub macOS runner. The runner has no dongle, so the smoke run
+uses only `--bogus`, `--listen` without a number, `--device`, and `--status`
+when `--device` finds nothing. Pushing a tag like `v0.1.0` makes the release
+workflow build the app, publish the zip and `SHA256SUMS` as a GitHub release
+and update the version and sha256 in `Casks/blackshark-battery.rb`.
+
+Security problems: see [SECURITY.md](SECURITY.md). The latest review is in
+[docs/SECURITY-REVIEW.md](docs/SECURITY-REVIEW.md).
 
 ## Quit
 

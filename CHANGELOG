@@ -6,6 +6,16 @@ follows Keep a Changelog.
 ## 0.1.0 - 2026-10-26
 
 ### Added
+- One-line installer (`install.sh`) that downloads the latest release, checks
+  it against `SHA256SUMS` and installs it. `--dry-run`, `BSB_VERSION` and
+  `INSTALL_DIR`.
+- Homebrew cask (`Casks/blackshark-battery.rb`); the repository is its own tap.
+- GitHub Actions: `ci.yml` runs the Linux tests, the linters and a macOS build
+  with a smoke test that needs no dongle; `release.yml` builds and publishes a
+  release for a `v*` tag and bumps the cask.
+- Docker services for the Linux tests and for swift-format, shellcheck and
+  actionlint (`compose.yaml`), with `make test` and `make lint`.
+- `SECURITY.md` and a security review in `docs/SECURITY-REVIEW.md`.
 - Menu bar app that shows the headset battery level and charging state, with
   Refresh now and Launch at login.
 - `--status`, `--listen`, `--device` and `-v` command line options.
