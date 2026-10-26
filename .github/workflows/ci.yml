@@ -1,0 +1,95 @@
+name: ci
+
+# Linux tests and lint run in containers, the same ones compose.yaml uses.
+# The macOS job builds the real app on a GitHub macOS runner. A runner has no
+# headset dongle, so nothing here may need one: the smoke test only runs
+# commands that send nothing, and it never runs --status when --device says a
+# dongle is present.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test-linux:
+    name: tests (Linux)
+    runs-on: ubuntu-latest
+    container: swift:6.1
+    steps:
+      - uses: actions/checkout@v4
+      - run: swift test --scratch-path /tmp/linux-build
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: shellcheck
+        run: docker compose run --rm lint-shell
+      - name: actionlint
+        run: docker compose run --rm lint-actions
+      - name: swift-format
+        run: docker compose run --rm lint-swift
+
+  build-macos:
+    name: build and test (macOS)
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      # The runner image has full Xcode, which ships the swift-testing macros,
+      # so the Command Line Tools -plugin-path workaround is not needed here.
+      - name: Unit tests
+        run: swift test
+      - name: Build the app
+        run: ./build.sh
+      - name: Verify signature and Info.plist
+        run: |
+          codesign --verify --verbose=2 build/BlackSharkBattery.app
+          plutil -lint build/BlackSharkBattery.app/Contents/Info.plist
+      - name: Smoke test the binary
+        run: |
+          BIN=build/BlackSharkBattery.app/Contents/MacOS/BlackSharkBattery
+          fail() { echo "smoke test failed: $1" >&2; exit 1; }
+
+          # An unknown argument exits 2 before the dongle is looked at.
+          code=0
+          err="$("$BIN" --bogus 2>&1 >/dev/null)" || code=$?
+          [ "$code" -eq 2 ] || fail "--bogus exited $code, expected 2"
+          case "$err" in *"unknown argument: --bogus"*) ;; *) fail "--bogus message: $err" ;; esac
+
+          # --listen without a valid number prints usage and exits 2, also before any dongle access.
+          code=0
+          err="$("$BIN" --listen 2>&1 >/dev/null)" || code=$?
+          [ "$code" -eq 2 ] || fail "--listen exited $code, expected 2"
+          case "$err" in *"usage: --listen SECONDS"*) ;; *) fail "--listen message: $err" ;; esac
+
+          # --device opens nothing and sends nothing. It exits 1 and prints
+          # "not found" without a dongle, 0 and "found ..." with one.
+          code=0
+          out="$("$BIN" --device)" || code=$?
+          echo "--device: exit $code, $out"
+          case "$out" in
+            "not found") [ "$code" -eq 1 ] || fail "--device exited $code, expected 1" ;;
+            "found "*) [ "$code" -eq 0 ] || fail "--device exited $code, expected 0" ;;
+            *) fail "--device printed: $out" ;;
+          esac
+
+          # --status reads, so it only runs when there is no dongle. It must
+          # then fail cleanly with the not-found message and exit 1.
+          if [ "$out" = "not found" ]; then
+            code=0
+            err="$("$BIN" --status 2>&1 >/dev/null)" || code=$?
+            echo "--status: exit $code, $err"
+            [ "$code" -eq 1 ] || fail "--status exited $code, expected 1"
+            [ "$err" = "BlackShark V2 Pro 2.4 dongle (vendor page 0xFF00) not found" ] || fail "--status message: $err"
+          else
+            echo "dongle present, skipping --status"
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: BlackSharkBattery-app
+          path: build/BlackSharkBattery.app

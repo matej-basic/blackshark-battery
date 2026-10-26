@@ -1,0 +1,38 @@
+# Docker tooling for everything that does not need macOS: the Linux tests and
+# the linters. The app itself builds only on a Mac (./build.sh).
+# Usage: docker compose run --rm <service>      or:  make test / make lint
+# CI (.github/workflows/ci.yml) runs the same lint services.
+
+name: blackshark-battery
+
+services:
+  # BatteryCore unit tests on Linux. The build directory is kept inside the
+  # container so it does not clash with the macOS .build/ in the repo.
+  test:
+    image: swift:6.1
+    working_dir: /src
+    volumes:
+      - .:/src
+    command: swift test --scratch-path /tmp/linux-build
+
+  # swift-format ships in the swift:6.1 image. Rules are in .swift-format.
+  lint-swift:
+    image: swift:6.1
+    working_dir: /src
+    volumes:
+      - .:/src:ro
+    command: swift-format lint --strict --recursive Sources Tests Package.swift
+
+  lint-shell:
+    image: koalaman/shellcheck:stable
+    working_dir: /src
+    volumes:
+      - .:/src:ro
+    command: build.sh install.sh
+
+  lint-actions:
+    image: rhysd/actionlint:latest
+    working_dir: /src
+    volumes:
+      - .:/src:ro
+    command: -color
