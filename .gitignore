@@ -2,3 +2,9 @@
 __pycache__/
 *.pyc
 .DS_Store
+.build/
+build/
+.swiftpm/
+xcuserdata/
+*.zip
+.claude/settings.local.json

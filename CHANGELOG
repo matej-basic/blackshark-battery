@@ -1,0 +1,16 @@
+# Changelog
+
+All notable changes to this project are documented in this file. The format
+follows Keep a Changelog.
+
+## 0.1.0 - 2026-10-26
+
+### Added
+- Menu bar app that shows the headset battery level and charging state, with
+  Refresh now and Launch at login.
+- `--status`, `--listen`, `--device` and `-v` command line options.
+- `BatteryCore` library with the frame builders, reply parser, query sequence
+  and polling rules, plus unit tests.
+- `build.sh`, which builds the Swift package and packages an ad-hoc signed app
+  bundle.
+- Python reference script for reading the battery over hidapi.
